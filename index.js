@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 });
 
 app.post('/mailer', async (req, res) => {
-    const { from, to, title, body, smtp_server, smtp_port, smtp_user, smtp_pass } = req.body;
+    const { from, to, title, body, smtp_server, smtp_port, smtp_user, smtp_pass, email_headers } = req.body;
 
     console.log(`Data: `, req.body);
 
@@ -73,26 +73,41 @@ app.post('/mailer', async (req, res) => {
         }
     });
 
-    // Prepare email options
-    const mailOptions = {
-        from: from, // sender address
-        to: to.join(','), // list of receivers
-        subject: title, // Subject line
-        text: body, // plain text body
-        html: body // html body
+    const sendEmail = async (recipient) => {
+        new Promise((resolve, reject) => {
+            const mailOptions = {
+                from: from, // sender address
+                to: recipient, // single recipient
+                subject: title, // Subject line
+                text: body, // plain text body
+                html: body, // html body
+                headers: email_headers
+            };
+        
+            transporter.sendMail(mailOptions)
+            .then(info => {
+                resolve(info)
+
+            })
+            .catch(error => {
+                reject(error)
+            })
+        })
     };
 
-    console.log(`Data:mailOptions `, mailOptions);
-
-    // Send email
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log(`Data:mailFeedback `, info);
-        res.json({ success: true, messageId: info.messageId });
-    } catch (error) {
-        console.error(`Data:mailError `, error);
-        res.status(500).json({ success: false, error: error.message });
+    const mailPromises = []
+    for (const recipient of to) {
+        mailPromises.push(sendEmail(recipient))
     }
+
+    //Send all
+    Promise.all(mailPromises)
+    .then(results => {
+        res.json({ success: true, results: results });
+    })
+    .catch(error => {
+        res.status(500).json({ success: false, error: error.message });
+    })
 });
 
 // Start the server
