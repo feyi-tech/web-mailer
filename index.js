@@ -86,8 +86,11 @@ app.post('/mailer', async (req, res) => {
         }
     }
 
+    //console.log("headers.raw", email_headers)
+    //console.log("headers.list", headersToList)
+
     const sendEmail = async (recipient) => {
-        new Promise((resolve, reject) => {
+        return new Promise((resolve, reject) => {
             const mailOptions = {
                 from: from, // sender address
                 to: recipient, // single recipient
@@ -99,6 +102,7 @@ app.post('/mailer', async (req, res) => {
         
             transporter.sendMail(mailOptions)
             .then(info => {
+                //console.log("sendMail.info", info)
                 resolve(info)
 
             })
@@ -114,6 +118,7 @@ app.post('/mailer', async (req, res) => {
     }
 
     //Send all
+    Promise.resolve(mailPromises)
     Promise.all(mailPromises)
     .then(results => {
         res.json({ success: true, results: results });
