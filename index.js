@@ -3,6 +3,7 @@ const nodemailer = require('nodemailer');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const { parseListHeaders } = require('./parser');
 
 dotenv.config();
 
@@ -73,6 +74,18 @@ app.post('/mailer', async (req, res) => {
         }
     });
 
+    if(email_headers && JSON.stringify(email_headers).length > 512) {
+        return res.status(400).json({ success: false, error: "Email Headers too long" });
+    }
+
+    const headersToList = email_headers? parseListHeaders(email_headers) : undefined
+
+    if(headersToList) {
+        if(headersToList.error) {
+            return res.status(400).json({ success: false, error: headersToList.error });
+        }
+    }
+
     const sendEmail = async (recipient) => {
         new Promise((resolve, reject) => {
             const mailOptions = {
@@ -81,7 +94,7 @@ app.post('/mailer', async (req, res) => {
                 subject: title, // Subject line
                 text: body, // plain text body
                 html: body, // html body
-                headers: email_headers
+                list: headersToList.list
             };
         
             transporter.sendMail(mailOptions)
