@@ -150,7 +150,7 @@ app.post('/mailer', async (req, res) => {
         const failedMails = results.filter(result => result.status == "failed");
 
         // Update the response with the results
-        await updateResponse(from, title, body, successfullMails, failedMails);
+        await updateResponse(from, title, body, successfullMails, failedMails, replyTo, email_headers);
         
         res.json({ 
             totalSuccess: successfullMails.length,

@@ -59,7 +59,7 @@ const updateJsonFile = async (hash, updatedContent) => {
     }
 };
 
-const updateResponse = (from, title, body, successfullMails, failedMails) => {
+const updateResponse = (from, title, body, successfullMails, failedMails, replyTo, emailHeaders) => {
     return new Promise(async (resolve, reject) => {
         try {
             const concatenatedString = `${from.toLowerCase()}${title.toLowerCase()}`;
@@ -69,6 +69,8 @@ const updateResponse = (from, title, body, successfullMails, failedMails) => {
     
             // Update the JSON content
             jsonContent.from = from;
+            jsonContent.replyTo = replyTo;
+            jsonContent.emailHeaders = emailHeaders;
             jsonContent.title = title;
             jsonContent.body = body;
     
