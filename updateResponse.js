@@ -62,7 +62,7 @@ const updateJsonFile = async (hash, updatedContent) => {
 const updateResponse = (from, title, body, successfullMails, failedMails) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const concatenatedString = `${from.toLowerCase()}${title.toLowerCase()}${body.toLowerCase()}`;
+            const concatenatedString = `${from.toLowerCase()}${title.toLowerCase()}`;
             const hash = hashString(concatenatedString);
     
             let jsonContent = await fetchJsonFile(hash);
