@@ -38,14 +38,14 @@ app.use((req, res, next) => {
 
 app.post('/mailer', async (req, res) => {
     const { 
-        from, replyTo, to, title, body, smtp_server, smtp_port, smtp_user, smtp_pass, email_headers 
+        from, replyTo, to, title, body, smtp_server, smtp_port, smtp_user, smtp_pass, email_headers, retry
     } = req.body;
 
     //console.log(`Data: `, req.body);
 
     // Input validation
-    if (!Array.isArray(to) || to.length === 0 || to.length > 1000) {
-        return res.status(400).json({ error: "The 'to' field must be an array with 1 to 1000 email addresses." });
+    if (!retry && (!Array.isArray(to) || to.length === 0 || to.length > 10000)) {
+        return res.status(400).json({ error: "The 'to' field must be an array with 1 to 10,000 email addresses." });
     }
     if (replyTo && replyTo.length > 128) {
         return res.status(400).json({ error: "The 'replyTo' field cannot be greater than 128 characters." });
@@ -77,11 +77,17 @@ app.post('/mailer', async (req, res) => {
             ...allTimeResult.failedMails.map(m => m.to)
         ]);
 
-        // Filter out email addresses that are already in successfullMails or failedMails
-        const filteredRecipients = to.filter(email => !previousEmails.has(email));
+        // Filter out email addresses that are already in successfullMails or failedMails or get some failed recipients to retry
+        const filteredRecipients = retry? allTimeResult.failedMails.slice(0, 200) : to.filter(email => !previousEmails.has(email));
 
         if (filteredRecipients.length === 0) {
-            return res.status(200).json({ message: "All provided email addresses have already been processed.", skipped: true });
+            return res.status(200).json({ 
+                message: retry? 
+                "No more failed email recipients to retry."
+                :
+                "All provided email addresses have already been processed.",
+                skipped: true 
+            });
         }
 
         // Setup Nodemailer transport
@@ -150,15 +156,15 @@ app.post('/mailer', async (req, res) => {
         const failedMails = results.filter(result => result.status == "failed");
 
         // Update the response with the results
-        await updateResponse(from, title, body, successfullMails, failedMails, replyTo, email_headers);
+        const updateResult = await updateResponse(from, title, body, successfullMails, failedMails, replyTo, email_headers, retry);
         
         res.json({ 
             totalSuccess: successfullMails.length,
             totalFailed: failedMails.length,
             
-            allTimeTotalSuccess: allTimeResult.successfullMails.length,
-            allTimeTotalFailed: allTimeResult.failedMails.length,
-            allTimeResultLink: allTimeResult.link
+            allTimeTotalSuccess: updateResult.successfullMails.length,
+            allTimeTotalFailed: updateResult.failedMails.length,
+            allTimeResultLink: updateResult.link
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });

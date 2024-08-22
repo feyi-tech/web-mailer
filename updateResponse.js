@@ -59,7 +59,7 @@ const updateJsonFile = async (hash, updatedContent) => {
     }
 };
 
-const updateResponse = (from, title, body, successfullMails, failedMails, replyTo, emailHeaders) => {
+const updateResponse = (from, title, body, successfullMails, failedMails, replyTo, emailHeaders, isRetry) => {
     return new Promise(async (resolve, reject) => {
         try {
             const concatenatedString = `${from.toLowerCase()}${title.toLowerCase()}`;
@@ -78,7 +78,14 @@ const updateResponse = (from, title, body, successfullMails, failedMails, replyT
             if (!jsonContent.failedMails) jsonContent.failedMails = [];
     
             jsonContent.successfullMails = [...jsonContent.successfullMails, ...successfullMails];
-            jsonContent.failedMails = [...jsonContent.failedMails, ...failedMails];
+            if(!isRetry) {
+                jsonContent.failedMails = [...jsonContent.failedMails, ...failedMails];
+
+            } else {
+                const successfullRecipients = successfullMails.map(mail => mail.to)
+                //Remove the successfull ones from the list
+                jsonContent.failedMails = jsonContent.failedMails.filter(recipient => !successfullRecipients.includes(recipient.to));
+            }
     
             await updateJsonFile(hash, jsonContent);
 
